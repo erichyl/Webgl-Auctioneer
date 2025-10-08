@@ -11,5 +11,8 @@ In the URL bar
 
 You’ll see your files being hosted on a simple local server, you can now click your html file.
 
-[![Watch the video](https://raw.githubusercontent.com/erichyl/Webgl-Auctioneer/main/assets/Eric_Liu_image.jpg)](https://raw.githubusercontent.com/erichyl/Webgl-Auctioneer/main/assets/Eric_Liu_movie.mp4)
+## or click the image below to play :)
+
+[![Watch the video](https://raw.githubusercontent.com/erichyl/Webgl-Auctioneer/main/Eric_Liu_image.jpg)](https://raw.githubusercontent.com/erichyl/Webgl-Auctioneer/main/Eric_Liu_movie.mp4)
+
 
