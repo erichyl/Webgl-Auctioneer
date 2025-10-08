@@ -11,8 +11,9 @@ In the URL bar
 
 You’ll see your files being hosted on a simple local server, you can now click your html file.
 
-## or click the image below to play :)
+## or click the image below for the mp4 file
 
 [![Watch the video](https://raw.githubusercontent.com/erichyl/Webgl-Auctioneer/main/Eric_Liu_image.jpg)](https://raw.githubusercontent.com/erichyl/Webgl-Auctioneer/main/Eric_Liu_movie.mp4)
+
 
 
