@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html>
+
+<script id="vertex-shader" type="x-shader/x-vertex">#version 300 es
+
+in vec4 vPosition;
+in vec3 vNormal;
+in vec2 vTexCoord;
+
+out vec4 fColor;
+out vec2 fTexCoord;
+out vec3 pos; // position in eye coordinates
+out vec3 Lpos; // light position in eye coordinates
+out vec3 N; // normal in eye coordinates
+
+uniform vec4 ambientProduct, diffuseProduct, specularProduct;
+uniform mat4 modelViewMatrix;
+uniform mat4 normalMatrix;
+uniform mat4 projectionMatrix;
+uniform vec4 lightPosition;
+uniform float shininess;
+
+
+void
+main()
+{
+    // Transform vertex position and normal into eye coordinates
+    pos = (modelViewMatrix * vPosition).xyz;
+    N = normalize((normalMatrix*vec4(vNormal,0.0)).xyz);
+    
+	// Set light position in eye space
+    Lpos = lightPosition.xyz;
+
+    // Transform vertex position to clip space
+    gl_Position = projectionMatrix * modelViewMatrix * vPosition;
+
+    // Pass texture coordinates to fragment shader
+	fTexCoord = vTexCoord;
+}
+</script>
+
+<script id="fragment-shader" type="x-shader/x-fragment">#version 300 es
+
+    precision mediump float;
+    
+    // Textures
+    uniform sampler2D texture1;
+    uniform sampler2D texture2;
+    uniform sampler2D texture3;
+    uniform sampler2D texture4;
+    uniform sampler2D texture5;
+    // determines which texture to use
+    uniform int blendTextures;
+    
+    // Lighting parameters
+    uniform vec4 ambientProduct, diffuseProduct, specularProduct;
+    uniform float shininess;
+    
+    // Input variables from vertex shader
+    in vec2 fTexCoord;
+    in vec3 pos;  // Fragment position in world space
+    in vec3 Lpos; // Light position in world space
+    in vec3 N;    // Normal vector
+    
+    // output color
+    layout(location=0) out vec4 fragColor;
+    
+    // Function to compute ADS (Ambient, Diffuse, Specular) lighting using Blinn-Phong model
+    vec4 ADS(vec3 pos, vec3 Lpos, vec3 Norm) {
+        // normalize vectors for light and view direction, and the normal vector
+        vec3 L = vec3(normalize(Lpos - pos));
+        vec3 V = normalize(-pos);
+        vec3 N = normalize(Norm);
+    
+        // Compute half-vector for Blinn-Phong shading
+        vec3 H = normalize(V + L); 
+    
+        float lightDotNormal = max(dot(L, N), 0.0);
+    
+        // Compute diffuse component
+        vec4 diffuse = vec4(0.0, 0.0, 0.0, 1.0);
+        diffuse = diffuseProduct * lightDotNormal * 0.7;
+        
+        // Compute specular component
+        float reflectedDotViewShiny = pow(max(dot(N,H), 0.0), shininess);
+        vec4 specular = vec4(0.0, 0.0, 0.0, 1.0);
+        specular = specularProduct * reflectedDotViewShiny * 0.7;
+        
+        // If light is behind the surface, no specular reflection
+        if(dot(L, N) < 0.0) {
+            specular = vec4(0.0, 0.0, 0.0, 1.0);
+        }
+        
+        // Combine ADS components
+        vec4 color = ambientProduct + diffuse + specular;
+        color.a = 1.0;
+        return color;
+    }
+    
+    void
+    main()
+    {
+    
+        vec2 uv = pos.xy;
+        uv -= 0.5;
+        
+        // Spotlight effect parameters
+        float blur = 0.3;
+        float start = -2.8;
+        float end = 2.0;
+        float angle = 0.4;
+        
+        // Compute soft edge mask
+        float step1 = smoothstep((start - blur) + uv.y * angle, (start + blur) + uv.y * angle, uv.x);
+        float step2 = smoothstep((end - blur) - uv.y * angle, (end + blur) - uv.y * angle, uv.x);
+        float c = step1 - step2;
+
+        // Spotlight position and direction
+        vec3 spotlightPos = vec3(0.0, 10.0, -10.0); // Spotlight position
+        vec3 spotlightDir = normalize(vec3(0.0, -1.0, 0.0)); // Spotlight direction
+    
+        // Calculate the vector from the spotlight to the current fragment
+        vec3 spotlightToPos = pos - spotlightPos;
+        
+        // Compute the angle between the spotlight direction and the fragment position
+        float spotlightIntensity = dot(normalize(spotlightToPos), spotlightDir);
+    
+        // Clamp the spotlight intensity and soften spotlight edges
+        spotlightIntensity = pow(max(spotlightIntensity, 0.0), 2.0);
+    
+        // Select texture based on blendTextures
+        if(blendTextures == 0)
+        {
+            fragColor = texture(texture1, fTexCoord);
+        }
+        else if (blendTextures == 1)
+        {
+            fragColor = texture(texture2, fTexCoord);
+        }
+        else if (blendTextures == 2)
+        {
+            fragColor = texture(texture3, fTexCoord);
+        }
+        else if (blendTextures == 3)
+        {
+            fragColor = texture(texture4, fTexCoord);
+        }
+        else if (blendTextures == 4)
+        {
+            fragColor = texture(texture5, fTexCoord);
+        }
+        else
+        {
+            fragColor = ADS(pos, Lpos.xyz, N);
+        }
+        
+        // shading effect
+        vec4 lowerColour = vec4(-0.5,-0.5,-0.5,0.0);
+    
+        // Dim the color based on spotlight intensity
+        if (spotlightIntensity > 0.9) {
+            fragColor = fragColor * 0.5;
+        } else {
+            fragColor = fragColor + lowerColour;
+        }
+        
+        // Darken the color where the mask is black
+        vec3 darkenedColor = mix(fragColor.rgb, vec3(0.0, 0.0, 0.0), 1.2);
+        vec3 finalColor = mix(darkenedColor, fragColor.rgb, c);
+        fragColor = vec4(finalColor, fragColor.a);
+    }
+    </script>
+
+<script type="text/javascript" src="Common/webgl-utils.js"></script>
+<script type="text/javascript" src="Common/initShaders.js"></script>
+
+<script type="text/javascript" src="Common/MV.js"></script>
+<script type="text/javascript" src="objects.js"></script>
+<script type="text/javascript" src="main.js"></script>
+
+
+<body>
+<canvas id="gl-canvas" width="512" height="512">
+Oops ... your browser doesn't support the HTML5 canvas element
+</canvas>
+
+<br/>
+<br/>
+
+</body>
+</html>
